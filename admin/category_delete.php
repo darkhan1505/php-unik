@@ -3,7 +3,7 @@ require_once __DIR__ . '/../includes/init.php';
 require_admin();
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-    redirect('categories.php');
+    redirect('/admin/categories.php');
 }
 
 $id = isset($_POST['id']) && ctype_digit($_POST['id']) ? (int) $_POST['id'] : null;
@@ -14,4 +14,4 @@ if ($id !== null) {
     set_flash('success', $stmt->rowCount() > 0 ? 'Категория удалена.' : 'Категория не найдена.');
 }
 
-redirect('categories.php');
+redirect('/admin/categories.php');

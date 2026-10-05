@@ -5,89 +5,67 @@ require_admin();
 $db = getDB();
 $currentUser = current_user();
 
-$userCount = (int) $db->query('SELECT COUNT(*) AS c FROM users')->fetch()['c'];
-$taskCount = (int) $db->query('SELECT COUNT(*) AS c FROM tasks')->fetch()['c'];
-$categoryCount = (int) $db->query('SELECT COUNT(*) AS c FROM categories')->fetch()['c'];
+$userCount = (int) $db->query('SELECT COUNT(*) FROM users')->fetchColumn();
+$productCount = (int) $db->query('SELECT COUNT(*) FROM products')->fetchColumn();
+$orderCount = (int) $db->query('SELECT COUNT(*) FROM orders')->fetchColumn();
+$revenue = (int) $db->query("SELECT COALESCE(SUM(total), 0) FROM orders WHERE status <> 'cancelled'")->fetchColumn();
 
 $users = $db->query(
-    "SELECT u.id, u.name, u.email, u.role, u.created_at, COUNT(t.id) AS task_count
+    'SELECT u.id, u.name, u.email, u.role, u.created_at, COUNT(o.id) AS order_count
      FROM users u
-     LEFT JOIN tasks t ON t.user_id = u.id
+     LEFT JOIN orders o ON o.user_id = u.id
      GROUP BY u.id
-     ORDER BY u.created_at DESC"
+     ORDER BY u.created_at DESC'
 )->fetchAll();
 
 $pageTitle = 'Админ-панель';
 require __DIR__ . '/../includes/header.php';
 ?>
 
-<section class="max-w-6xl mx-auto px-4 py-10">
-  <div class="flex items-center justify-between mb-6">
-    <h1 class="text-2xl font-bold text-slate-900">Админ-панель</h1>
-    <div class="flex gap-2 text-sm">
-      <a href="tasks.php" class="px-4 py-2 rounded-lg bg-white border border-slate-200 hover:bg-slate-50">Все задачи</a>
-      <a href="categories.php" class="px-4 py-2 rounded-lg bg-white border border-slate-200 hover:bg-slate-50">Категории</a>
-    </div>
+<section class="container section-sm">
+  <h2>Админ-панель</h2>
+  <?php require __DIR__ . '/_nav.php'; ?>
+
+  <div class="stats">
+    <div class="stat"><span class="muted">Пользователей</span><b><?= $userCount ?></b></div>
+    <div class="stat"><span class="muted">Курток в каталоге</span><b><?= $productCount ?></b></div>
+    <div class="stat"><span class="muted">Заказов</span><b><?= $orderCount ?></b></div>
+    <div class="stat"><span class="muted">Выручка</span><b><?= format_price($revenue) ?></b></div>
   </div>
 
-  <div class="grid sm:grid-cols-3 gap-4 mb-10">
-    <div class="bg-white rounded-xl border border-slate-200 p-5">
-      <p class="text-sm text-slate-500">Пользователей</p>
-      <p class="text-3xl font-bold text-slate-900 mt-1"><?= $userCount ?></p>
-    </div>
-    <div class="bg-white rounded-xl border border-slate-200 p-5">
-      <p class="text-sm text-slate-500">Задач всего</p>
-      <p class="text-3xl font-bold text-slate-900 mt-1"><?= $taskCount ?></p>
-    </div>
-    <div class="bg-white rounded-xl border border-slate-200 p-5">
-      <p class="text-sm text-slate-500">Категорий</p>
-      <p class="text-3xl font-bold text-slate-900 mt-1"><?= $categoryCount ?></p>
-    </div>
-  </div>
-
-  <h2 class="text-lg font-semibold text-slate-800 mb-4">Пользователи</h2>
-  <div class="bg-white rounded-xl border border-slate-200 overflow-hidden">
-    <table class="w-full text-sm">
-      <thead class="bg-slate-50 text-slate-500 text-left">
-        <tr>
-          <th class="px-5 py-3 font-medium">Имя</th>
-          <th class="px-5 py-3 font-medium">Email</th>
-          <th class="px-5 py-3 font-medium">Роль</th>
-          <th class="px-5 py-3 font-medium">Задач</th>
-          <th class="px-5 py-3 font-medium">Регистрация</th>
-          <th class="px-5 py-3 font-medium text-right">Действия</th>
-        </tr>
-      </thead>
-      <tbody class="divide-y divide-slate-100">
-        <?php foreach ($users as $u): ?>
-          <tr class="hover:bg-slate-50">
-            <td class="px-5 py-3 font-medium text-slate-800"><?= e($u['name']) ?></td>
-            <td class="px-5 py-3 text-slate-500"><?= e($u['email']) ?></td>
-            <td class="px-5 py-3">
-              <span class="px-2 py-1 rounded-full text-xs font-medium <?= $u['role'] === 'admin' ? 'bg-purple-100 text-purple-700' : 'bg-slate-100 text-slate-600' ?>">
-                <?= $u['role'] === 'admin' ? 'Администратор' : 'Пользователь' ?>
-              </span>
+  <h2 style="font-size:22px; margin-top:40px;">Пользователи</h2>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Имя</th><th>Email</th><th>Заказов</th><th>Регистрация</th><th>Роль</th><th></th></tr></thead>
+      <tbody>
+        <?php foreach ($users as $u): $isSelf = (int) $u['id'] === (int) $currentUser['id']; ?>
+          <tr>
+            <td><b><?= e($u['name']) ?></b></td>
+            <td><?= e($u['email']) ?></td>
+            <td><?= (int) $u['order_count'] ?></td>
+            <td><?= e(format_datetime($u['created_at'])) ?></td>
+            <td>
+              <?php if ($isSelf): ?>
+                <span class="badge blue">admin (вы)</span>
+              <?php else: ?>
+                <form method="post" action="/admin/user_role.php" class="actions">
+                  <input type="hidden" name="id" value="<?= (int) $u['id'] ?>">
+                  <select name="role" style="width:auto; padding:8px 10px;">
+                    <option value="user" <?= $u['role'] === 'user' ? 'selected' : '' ?>>user</option>
+                    <option value="admin" <?= $u['role'] === 'admin' ? 'selected' : '' ?>>admin</option>
+                  </select>
+                  <button type="submit" class="btn btn-light btn-sm">Сохранить</button>
+                </form>
+              <?php endif; ?>
             </td>
-            <td class="px-5 py-3 text-slate-500"><?= (int) $u['task_count'] ?></td>
-            <td class="px-5 py-3 text-slate-500"><?= format_date($u['created_at']) ?></td>
-            <td class="px-5 py-3">
-              <div class="flex justify-end gap-3">
-                <?php if ((int) $u['id'] !== (int) $currentUser['id']): ?>
-                  <form method="post" action="user_role.php">
-                    <input type="hidden" name="id" value="<?= (int) $u['id'] ?>">
-                    <input type="hidden" name="role" value="<?= $u['role'] === 'admin' ? 'user' : 'admin' ?>">
-                    <button type="submit" class="text-brand-600 hover:underline">
-                      <?= $u['role'] === 'admin' ? 'Забрать права админа' : 'Сделать админом' ?>
-                    </button>
-                  </form>
-                  <form method="post" action="user_delete.php" class="js-confirm-delete" data-confirm-message="Удалить пользователя «<?= e($u['name']) ?>»? Все его задачи будут удалены безвозвратно.">
-                    <input type="hidden" name="id" value="<?= (int) $u['id'] ?>">
-                    <button type="submit" class="text-red-600 hover:underline">Удалить</button>
-                  </form>
-                <?php else: ?>
-                  <span class="text-slate-400">Это вы</span>
-                <?php endif; ?>
-              </div>
+            <td>
+              <?php if (!$isSelf): ?>
+                <form method="post" action="/admin/user_delete.php" class="js-confirm-delete"
+                      data-confirm-message="Удалить пользователя «<?= e($u['name']) ?>» вместе с его заказами?">
+                  <input type="hidden" name="id" value="<?= (int) $u['id'] ?>">
+                  <button type="submit" class="btn btn-danger btn-sm">Удалить</button>
+                </form>
+              <?php endif; ?>
             </td>
           </tr>
         <?php endforeach; ?>

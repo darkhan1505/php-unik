@@ -3,7 +3,7 @@ require_once __DIR__ . '/../includes/init.php';
 require_admin();
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-    redirect('index.php');
+    redirect('/admin/index.php');
 }
 
 $currentUser = current_user();
@@ -18,4 +18,4 @@ if ($userId !== null && in_array($role, ['user', 'admin'], true) && $userId !== 
     set_flash('error', 'Не удалось изменить роль пользователя.');
 }
 
-redirect('index.php');
+redirect('/admin/index.php');

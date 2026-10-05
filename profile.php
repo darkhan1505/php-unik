@@ -30,7 +30,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['form'] ?? '') === 'profile
         $stmt = $db->prepare('UPDATE users SET name = ?, email = ? WHERE id = ?');
         $stmt->execute([$name, $email, $user['id']]);
         set_flash('success', 'Профиль обновлён.');
-        redirect('profile.php');
+        redirect('/profile.php');
     }
 }
 
@@ -57,77 +57,105 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['form'] ?? '') === 'passwor
         $stmt = $db->prepare('UPDATE users SET password_hash = ? WHERE id = ?');
         $stmt->execute([password_hash($new, PASSWORD_DEFAULT), $user['id']]);
         set_flash('success', 'Пароль успешно изменён.');
-        redirect('profile.php');
+        redirect('/profile.php');
     }
 }
 
-$user = current_user();
+$stmt = $db->prepare('SELECT id, total, status, created_at FROM orders WHERE user_id = ? ORDER BY id DESC');
+$stmt->execute([$user['id']]);
+$orders = $stmt->fetchAll();
+
+$itemsByOrder = [];
+if ($orders) {
+    $ids = array_column($orders, 'id');
+    $in = implode(',', array_fill(0, count($ids), '?'));
+    $stmt = $db->prepare("SELECT order_id, product_name, size, quantity FROM order_items WHERE order_id IN ($in) ORDER BY id");
+    $stmt->execute($ids);
+    foreach ($stmt->fetchAll() as $row) {
+        $itemsByOrder[$row['order_id']][] = $row;
+    }
+}
+
+$formName = $_POST['name'] ?? $user['name'];
+$formEmail = $_POST['email'] ?? $user['email'];
+
 $pageTitle = 'Профиль';
 require __DIR__ . '/includes/header.php';
 ?>
 
-<section class="max-w-2xl mx-auto px-4 py-10 space-y-8">
-  <h1 class="text-2xl font-bold text-slate-900">Профиль</h1>
+<section class="container section-sm">
+  <h2>Мои заказы</h2>
 
-  <div class="bg-white border border-slate-200 rounded-xl p-6">
-    <h2 class="font-semibold text-slate-800 mb-4">Личные данные</h2>
+  <?php if (!$orders): ?>
+    <p class="muted" style="margin-top:20px;">Вы ещё ничего не заказывали. <a href="/index.php#catalog" style="color:#2465d8;">Перейти в каталог</a></p>
+  <?php else: ?>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>№</th><th>Дата</th><th>Состав</th><th>Сумма</th><th>Статус</th></tr></thead>
+        <tbody>
+          <?php foreach ($orders as $o): ?>
+            <tr>
+              <td><b>#<?= (int) $o['id'] ?></b></td>
+              <td><?= e(format_datetime($o['created_at'])) ?></td>
+              <td>
+                <?php foreach ($itemsByOrder[$o['id']] ?? [] as $it): ?>
+                  <div><?= e($it['product_name']) ?> (<?= e($it['size']) ?>) × <?= (int) $it['quantity'] ?></div>
+                <?php endforeach; ?>
+              </td>
+              <td><b><?= format_price((int) $o['total']) ?></b></td>
+              <td><span class="badge <?= order_status_badge($o['status']) ?>"><?= e(order_status_label($o['status'])) ?></span></td>
+            </tr>
+          <?php endforeach; ?>
+        </tbody>
+      </table>
+    </div>
+  <?php endif; ?>
+</section>
 
-    <?php if ($errors): ?>
-      <div class="mb-4 rounded-lg bg-red-50 border border-red-200 text-red-700 text-sm px-4 py-3">
-        <ul class="list-disc list-inside space-y-1">
-          <?php foreach ($errors as $error): ?><li><?= e($error) ?></li><?php endforeach; ?>
-        </ul>
-      </div>
-    <?php endif; ?>
+<section class="container section-sm" style="padding-top:0;">
+  <div class="grid" style="align-items:start;">
+    <div class="box">
+      <h1>Мои данные</h1>
+      <?php if ($errors): ?>
+        <ul class="errors"><?php foreach ($errors as $error): ?><li><?= e($error) ?></li><?php endforeach; ?></ul>
+      <?php endif; ?>
+      <form method="post" novalidate>
+        <input type="hidden" name="form" value="profile">
+        <div class="field">
+          <label for="name">Имя</label>
+          <input type="text" id="name" name="name" value="<?= e($formName) ?>" required>
+        </div>
+        <div class="field">
+          <label for="email">Email</label>
+          <input type="email" id="email" name="email" value="<?= e($formEmail) ?>" required>
+        </div>
+        <button type="submit" class="btn">Сохранить</button>
+      </form>
+    </div>
 
-    <form method="post" class="space-y-4">
-      <input type="hidden" name="form" value="profile">
-      <div>
-        <label class="block text-sm font-medium text-slate-700 mb-1">Имя</label>
-        <input type="text" name="name" value="<?= e($user['name']) ?>" required minlength="2"
-               class="w-full rounded-lg border border-slate-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-brand-500">
-      </div>
-      <div>
-        <label class="block text-sm font-medium text-slate-700 mb-1">Email</label>
-        <input type="email" name="email" value="<?= e($user['email']) ?>" required
-               class="w-full rounded-lg border border-slate-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-brand-500">
-      </div>
-      <div class="text-sm text-slate-500">Роль: <span class="font-medium text-slate-700"><?= $user['role'] === 'admin' ? 'Администратор' : 'Пользователь' ?></span></div>
-      <button type="submit" class="px-5 py-2.5 rounded-lg bg-brand-600 text-white font-semibold hover:bg-brand-700">Сохранить</button>
-    </form>
-  </div>
-
-  <div class="bg-white border border-slate-200 rounded-xl p-6">
-    <h2 class="font-semibold text-slate-800 mb-4">Смена пароля</h2>
-
-    <?php if ($passwordErrors): ?>
-      <div class="mb-4 rounded-lg bg-red-50 border border-red-200 text-red-700 text-sm px-4 py-3">
-        <ul class="list-disc list-inside space-y-1">
-          <?php foreach ($passwordErrors as $error): ?><li><?= e($error) ?></li><?php endforeach; ?>
-        </ul>
-      </div>
-    <?php endif; ?>
-
-    <form method="post" data-password-match-form novalidate class="space-y-4">
-      <input type="hidden" name="form" value="password">
-      <div>
-        <label class="block text-sm font-medium text-slate-700 mb-1">Текущий пароль</label>
-        <input type="password" name="current_password" required
-               class="w-full rounded-lg border border-slate-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-brand-500">
-      </div>
-      <div>
-        <label class="block text-sm font-medium text-slate-700 mb-1">Новый пароль</label>
-        <input type="password" name="new_password" required minlength="6" data-password
-               class="w-full rounded-lg border border-slate-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-brand-500">
-      </div>
-      <div>
-        <label class="block text-sm font-medium text-slate-700 mb-1">Повторите новый пароль</label>
-        <input type="password" name="new_password_confirm" required minlength="6" data-password-confirm
-               class="w-full rounded-lg border border-slate-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-brand-500">
-        <p data-password-hint class="hidden text-xs text-red-600 mt-1">Пароли не совпадают</p>
-      </div>
-      <button type="submit" class="px-5 py-2.5 rounded-lg bg-slate-800 text-white font-semibold hover:bg-slate-900">Изменить пароль</button>
-    </form>
+    <div class="box">
+      <h1>Смена пароля</h1>
+      <?php if ($passwordErrors): ?>
+        <ul class="errors"><?php foreach ($passwordErrors as $error): ?><li><?= e($error) ?></li><?php endforeach; ?></ul>
+      <?php endif; ?>
+      <form method="post" data-password-match-form novalidate>
+        <input type="hidden" name="form" value="password">
+        <div class="field">
+          <label for="current_password">Текущий пароль</label>
+          <input type="password" id="current_password" name="current_password" required>
+        </div>
+        <div class="field">
+          <label for="new_password">Новый пароль</label>
+          <input type="password" id="new_password" name="new_password" required minlength="6" data-password>
+        </div>
+        <div class="field">
+          <label for="new_password_confirm">Повторите новый пароль</label>
+          <input type="password" id="new_password_confirm" name="new_password_confirm" required minlength="6" data-password-confirm>
+          <p data-password-hint class="hint hidden">Пароли не совпадают</p>
+        </div>
+        <button type="submit" class="btn">Изменить пароль</button>
+      </form>
+    </div>
   </div>
 </section>
 

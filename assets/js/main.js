@@ -1,9 +1,9 @@
 document.addEventListener('DOMContentLoaded', () => {
   // Мобильное меню
   const menuBtn = document.getElementById('menu-toggle');
-  const mobileMenu = document.getElementById('mobile-menu');
+  const mobileMenu = document.getElementById('nav-links');
   if (menuBtn && mobileMenu) {
-    menuBtn.addEventListener('click', () => mobileMenu.classList.toggle('hidden'));
+    menuBtn.addEventListener('click', () => mobileMenu.classList.toggle('open'));
   }
 
   // Автоскрытие флеш-сообщений
