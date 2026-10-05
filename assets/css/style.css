@@ -614,3 +614,10 @@ footer .container {
         display: flex;
     }
 }
+
+/* Индикатор загрузки при AJAX-переходах */
+body.loading main {
+    opacity: .5;
+    transition: opacity .15s ease;
+    pointer-events: none;
+}
