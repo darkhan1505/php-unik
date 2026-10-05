@@ -1,0 +1,20 @@
+services:
+  - type: web
+    name: north-jackets
+    runtime: docker
+    plan: free
+    envVars:
+      - key: DB_HOST
+        fromDatabase: { name: north-db, property: host }
+      - key: DB_PORT
+        fromDatabase: { name: north-db, property: port }
+      - key: DB_NAME
+        fromDatabase: { name: north-db, property: database }
+      - key: DB_USER
+        fromDatabase: { name: north-db, property: user }
+      - key: DB_PASS
+        fromDatabase: { name: north-db, property: password }
+
+databases:
+  - name: north-db
+    plan: free
