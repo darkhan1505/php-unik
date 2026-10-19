@@ -529,35 +529,6 @@ td img {
     margin-top: 20px;
 }
 
-/* Модальное окно */
-.modal {
-    position: fixed;
-    inset: 0;
-    background: rgba(32, 42, 53, .5);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: 20px;
-    z-index: 50;
-}
-
-.modal-box {
-    background: white;
-    border-radius: 14px;
-    padding: 28px;
-    max-width: 380px;
-    width: 100%;
-}
-
-.modal-box p {
-    margin: 10px 0 24px;
-    color: #606d7b;
-}
-
-.modal-box .actions {
-    justify-content: flex-end;
-}
-
 /* Подвал */
 footer {
     border-top: 1px solid #e5e9ed;
@@ -615,9 +586,3 @@ footer .container {
     }
 }
 
-/* Индикатор загрузки при AJAX-переходах */
-body.loading main {
-    opacity: .5;
-    transition: opacity .15s ease;
-    pointer-events: none;
-}

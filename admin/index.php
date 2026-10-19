@@ -1,11 +1,17 @@
 <?php
+// require_once подключает файл один раз (повторно не подключит). __DIR__ — папка текущего файла.
+// init.php запускает сессию, подключает БД и общие функции — он нужен каждой странице.
 require_once __DIR__ . '/../includes/init.php';
+// Пускает только администратора, остальных перенаправляет. Скрипт дальше не выполнится.
 require_admin();
 
+// getDB() возвращает объект PDO — соединение с PostgreSQL (см. config/database.php).
 $db = getDB();
 $currentUser = current_user();
 
+// query() — запрос без параметров. fetchAll() возвращает все строки: массив ассоциативных массивов ['name' => '...'].
 $userCount = (int) $db->query('SELECT COUNT(*) FROM users')->fetchColumn();
+// fetchColumn() — значение первого столбца первой строки (удобно для COUNT/SUM).
 $productCount = (int) $db->query('SELECT COUNT(*) FROM products')->fetchColumn();
 $orderCount = (int) $db->query('SELECT COUNT(*) FROM orders')->fetchColumn();
 $revenue = (int) $db->query("SELECT COALESCE(SUM(total), 0) FROM orders WHERE status <> 'cancelled'")->fetchColumn();
@@ -18,7 +24,9 @@ $users = $db->query(
      ORDER BY u.created_at DESC'
 )->fetchAll();
 
+// Переменная будет доступна в header.php: файлы подключены через require, поэтому у них общая область видимости.
 $pageTitle = 'Админ-панель';
+// require вставляет файл прямо сюда (в отличие от require_once — каждый раз). Ниже, после закрывающего тега PHP, идёт обычный HTML.
 require __DIR__ . '/../includes/header.php';
 ?>
 
@@ -60,8 +68,7 @@ require __DIR__ . '/../includes/header.php';
             </td>
             <td>
               <?php if (!$isSelf): ?>
-                <form method="post" action="/admin/user_delete.php" class="js-confirm-delete"
-                      data-confirm-message="Удалить пользователя «<?= e($u['name']) ?>» вместе с его заказами?">
+                <form method="post" action="/admin/user_delete.php" onsubmit="return confirm('Удалить пользователя «<?= e($u['name']) ?>» вместе с его заказами?')">
                   <input type="hidden" name="id" value="<?= (int) $u['id'] ?>">
                   <button type="submit" class="btn btn-danger btn-sm">Удалить</button>
                 </form>

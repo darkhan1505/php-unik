@@ -1,7 +1,11 @@
 <?php
+// require_once подключает файл один раз (повторно не подключит). __DIR__ — папка текущего файла.
+// init.php запускает сессию, подключает БД и общие функции — он нужен каждой странице.
 require_once __DIR__ . '/../includes/init.php';
+// Пускает только администратора, остальных перенаправляет. Скрипт дальше не выполнится.
 require_admin();
 
+// query() — запрос без параметров. fetchAll() возвращает все строки: массив ассоциативных массивов ['name' => '...'].
 $products = getDB()->query(
     'SELECT p.id, p.name, p.price, p.image_url, p.in_stock, c.name AS category_name
      FROM products p
@@ -9,7 +13,9 @@ $products = getDB()->query(
      ORDER BY p.id DESC'
 )->fetchAll();
 
+// Переменная будет доступна в header.php: файлы подключены через require, поэтому у них общая область видимости.
 $pageTitle = 'Куртки';
+// require вставляет файл прямо сюда (в отличие от require_once — каждый раз). Ниже, после закрывающего тега PHP, идёт обычный HTML.
 require __DIR__ . '/../includes/header.php';
 ?>
 
@@ -34,8 +40,7 @@ require __DIR__ . '/../includes/header.php';
             <td>
               <div class="actions">
                 <a class="btn btn-light btn-sm" href="/admin/product_form.php?id=<?= (int) $p['id'] ?>">Изменить</a>
-                <form method="post" action="/admin/product_delete.php" class="js-confirm-delete"
-                      data-confirm-message="Удалить куртку «<?= e($p['name']) ?>»?">
+                <form method="post" action="/admin/product_delete.php" onsubmit="return confirm('Удалить куртку «<?= e($p['name']) ?>»?')">
                   <input type="hidden" name="id" value="<?= (int) $p['id'] ?>">
                   <button type="submit" class="btn btn-danger btn-sm">Удалить</button>
                 </form>

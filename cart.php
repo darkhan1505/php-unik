@@ -1,23 +1,35 @@
 <?php
+// require_once подключает файл один раз (повторно не подключит). __DIR__ — папка текущего файла.
+// init.php запускает сессию, подключает БД и общие функции — он нужен каждой странице.
 require_once __DIR__ . '/includes/init.php';
 
+// $_SERVER['REQUEST_METHOD'] — HTTP-метод запроса: POST = форма отправлена, GET = страницу просто открыли.
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $action = $_POST['action'] ?? '';
 
     if ($action === 'add') {
+        // $_GET — параметры из URL (?id=5), $_POST — поля отправленной формы. ctype_digit() — строка состоит только из цифр,
+        // (int) приводит к числу. Запись «условие ? а : б» — тернарный оператор (как if/else в одну строку).
         $productId = isset($_POST['product_id']) && ctype_digit($_POST['product_id']) ? (int) $_POST['product_id'] : 0;
+        // ?? '' — значение по умолчанию, если ключа в $_POST нет. trim() убирает пробелы по краям.
         $size = trim($_POST['size'] ?? '');
 
+        // prepare() + execute() — подготовленный запрос: значения для ? передаются отдельно массивом (защита от SQL-инъекций).
+        // fetch() вернёт одну строку как ассоциативный массив (или false), fetchAll() — все строки.
         $stmt = getDB()->prepare('SELECT sizes, in_stock FROM products WHERE id = ?');
         $stmt->execute([$productId]);
         $product = $stmt->fetch();
 
+        // in_array($значение, $массив, true) — есть ли значение в массиве; true = строгое сравнение типов.
         if (!$product || !$product['in_stock'] || !in_array($size, parse_sizes($product['sizes']), true)) {
+            // Flash-сообщение: текст кладётся в $_SESSION и показывается один раз на следующей загруженной странице.
             set_flash('error', 'Не удалось добавить куртку в корзину.');
+            // redirect() отправляет заголовок Location и вызывает exit — код ниже не выполнится.
             redirect('/index.php');
         }
 
         $key = $productId . ':' . $size;
+        // $_SESSION — массив, который PHP хранит на сервере между запросами (привязан к пользователю через cookie).
         $_SESSION['cart'][$key] = min(10, ($_SESSION['cart'][$key] ?? 0) + 1);
         set_flash('success', 'Куртка добавлена в корзину.');
         redirect('/cart.php');
@@ -28,8 +40,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $qty = (int) ($_POST['quantity'] ?? 0);
         if (isset($_SESSION['cart'][$key])) {
             if ($qty < 1) {
+                // unset() удаляет переменную или элемент массива.
                 unset($_SESSION['cart'][$key]);
             } else {
+                // min() — меньшее из двух чисел: ограничиваем количество десятью.
                 $_SESSION['cart'][$key] = min(10, $qty);
             }
         }
@@ -46,7 +60,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 $cart = cart_items();
 
+// Переменная будет доступна в header.php: файлы подключены через require, поэтому у них общая область видимости.
 $pageTitle = 'Корзина';
+// require вставляет файл прямо сюда (в отличие от require_once — каждый раз). Ниже, после закрывающего тега PHP, идёт обычный HTML.
 require __DIR__ . '/includes/header.php';
 ?>
 

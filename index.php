@@ -1,9 +1,15 @@
 <?php
+// require_once подключает файл один раз (повторно не подключит). __DIR__ — папка текущего файла.
+// init.php запускает сессию, подключает БД и общие функции — он нужен каждой странице.
 require_once __DIR__ . '/includes/init.php';
 
+// getDB() возвращает объект PDO — соединение с PostgreSQL (см. config/database.php).
 $db = getDB();
+// query() — запрос без параметров. fetchAll() возвращает все строки: массив ассоциативных массивов ['name' => '...'].
 $categories = $db->query('SELECT id, name FROM categories ORDER BY name')->fetchAll();
 
+// $_GET — параметры из URL (?id=5), $_POST — поля отправленной формы. ctype_digit() — строка состоит только из цифр,
+// (int) приводит к числу. Запись «условие ? а : б» — тернарный оператор (как if/else в одну строку).
 $categoryId = isset($_GET['category']) && ctype_digit($_GET['category']) ? (int) $_GET['category'] : null;
 
 $sql = 'SELECT id, name, subtitle, price, image_url, in_stock FROM products';
@@ -13,13 +19,17 @@ if ($categoryId !== null) {
     $params[] = $categoryId;
 }
 $sql .= ' ORDER BY id';
+// prepare() + execute() — подготовленный запрос: значения для ? передаются отдельно массивом (защита от SQL-инъекций).
+// fetch() вернёт одну строку как ассоциативный массив (или false), fetchAll() — все строки.
 $stmt = $db->prepare($sql);
 $stmt->execute($params);
 $products = $stmt->fetchAll();
 
 $heroImage = $products[0]['image_url'] ?? 'https://images.unsplash.com/photo-1551028719-00167b16eac5?w=900&q=85';
 
+// Переменная будет доступна в header.php: файлы подключены через require, поэтому у них общая область видимости.
 $pageTitle = 'Магазин курток';
+// require вставляет файл прямо сюда (в отличие от require_once — каждый раз). Ниже, после закрывающего тега PHP, идёт обычный HTML.
 require __DIR__ . '/includes/header.php';
 ?>
 

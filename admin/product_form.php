@@ -1,8 +1,14 @@
 <?php
+// require_once подключает файл один раз (повторно не подключит). __DIR__ — папка текущего файла.
+// init.php запускает сессию, подключает БД и общие функции — он нужен каждой странице.
 require_once __DIR__ . '/../includes/init.php';
+// Пускает только администратора, остальных перенаправляет. Скрипт дальше не выполнится.
 require_admin();
 
+// getDB() возвращает объект PDO — соединение с PostgreSQL (см. config/database.php).
 $db = getDB();
+// $_GET — параметры из URL (?id=5), $_POST — поля отправленной формы. ctype_digit() — строка состоит только из цифр,
+// (int) приводит к числу. Запись «условие ? а : б» — тернарный оператор (как if/else в одну строку).
 $id = isset($_GET['id']) && ctype_digit($_GET['id']) ? (int) $_GET['id'] : null;
 
 $product = [
@@ -11,20 +17,27 @@ $product = [
 ];
 
 if ($id !== null) {
+    // prepare() + execute() — подготовленный запрос: значения для ? передаются отдельно массивом (защита от SQL-инъекций).
+    // fetch() вернёт одну строку как ассоциативный массив (или false), fetchAll() — все строки.
     $stmt = $db->prepare('SELECT * FROM products WHERE id = ?');
     $stmt->execute([$id]);
     $found = $stmt->fetch();
     if (!$found) {
+        // Flash-сообщение: текст кладётся в $_SESSION и показывается один раз на следующей загруженной странице.
         set_flash('error', 'Куртка не найдена.');
+        // redirect() отправляет заголовок Location и вызывает exit — код ниже не выполнится.
         redirect('/admin/products.php');
     }
     $product = $found;
 }
 
+// query() — запрос без параметров. fetchAll() возвращает все строки: массив ассоциативных массивов ['name' => '...'].
 $categories = $db->query('SELECT id, name FROM categories ORDER BY name')->fetchAll();
 $errors = [];
 
+// $_SERVER['REQUEST_METHOD'] — HTTP-метод запроса: POST = форма отправлена, GET = страницу просто открыли.
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    // ?? '' — значение по умолчанию, если ключа в $_POST нет. trim() убирает пробелы по краям.
     $product['name'] = trim($_POST['name'] ?? '');
     $product['subtitle'] = trim($_POST['subtitle'] ?? '');
     $product['description'] = trim($_POST['description'] ?? '');
@@ -34,12 +47,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $product['in_stock'] = isset($_POST['in_stock']);
     $product['category_id'] = ctype_digit($_POST['category_id'] ?? '') ? (int) $_POST['category_id'] : '';
 
+    // mb_strlen() — длина строки с учётом UTF-8 (кириллица); обычный strlen считает байты.
     if (mb_strlen($product['name']) < 2) {
         $errors[] = 'Название должно содержать минимум 2 символа.';
     }
     if (!ctype_digit($product['price'])) {
         $errors[] = 'Цена должна быть целым неотрицательным числом.';
     }
+    // preg_match() — проверка строки регулярным выражением (true, если подходит).
     if ($product['image_url'] !== '' && !preg_match('#^(https?://|/)#i', $product['image_url'])) {
         $errors[] = 'Ссылка на фото должна начинаться с http://, https:// или /.';
     }
@@ -66,6 +81,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 'UPDATE products SET category_id = ?, name = ?, subtitle = ?, description = ?,
                  price = ?, image_url = ?, sizes = ?, in_stock = ? WHERE id = ?'
             );
+            // Три точки (spread) распаковывают массив: получится $values + $id в конце.
             $stmt->execute([...$values, $id]);
             set_flash('success', 'Куртка обновлена.');
         }
@@ -73,7 +89,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 }
 
+// Переменная будет доступна в header.php: файлы подключены через require, поэтому у них общая область видимости.
 $pageTitle = $id === null ? 'Новая куртка' : 'Редактирование куртки';
+// require вставляет файл прямо сюда (в отличие от require_once — каждый раз). Ниже, после закрывающего тега PHP, идёт обычный HTML.
 require __DIR__ . '/../includes/header.php';
 ?>
 
