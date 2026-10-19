@@ -1,23 +1,23 @@
 <?php
-// require_once подключает файл один раз (повторно не подключит). __DIR__ — папка текущего файла.
-// init.php запускает сессию, подключает БД и общие функции — он нужен каждой странице.
+// require_once подключает файл один раз (повторно не подключит). __DIR__  папка текущего файла.
+// init.php запускает сессию, подключает БД и общие функции  он нужен каждой странице.
 require_once __DIR__ . '/includes/init.php';
-// Если пользователь не вошёл — redirect() отправит на /login.php и остановит скрипт (exit).
+// Если пользователь не вошёл  redirect() отправит на /login.php и остановит скрипт (exit).
 require_login();
 
-// getDB() возвращает объект PDO — соединение с PostgreSQL (см. config/database.php).
+// getDB() возвращает объект PDO  соединение с PostgreSQL (см. config/database.php).
 $db = getDB();
 $user = current_user();
 $errors = [];
 $passwordErrors = [];
 
-// $_SERVER['REQUEST_METHOD'] — HTTP-метод запроса: POST = форма отправлена, GET = страницу просто открыли.
+// $_SERVER['REQUEST_METHOD']  HTTP-метод запроса: POST = форма отправлена, GET = страницу просто открыли.
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['form'] ?? '') === 'profile') {
-    // ?? '' — значение по умолчанию, если ключа в $_POST нет. trim() убирает пробелы по краям.
+    // ?? ''  значение по умолчанию, если ключа в $_POST нет. trim() убирает пробелы по краям.
     $name = trim($_POST['name'] ?? '');
     $email = trim($_POST['email'] ?? '');
 
-    // mb_strlen() — длина строки с учётом UTF-8 (кириллица); обычный strlen считает байты.
+    // mb_strlen()  длина строки с учётом UTF-8 (кириллица); обычный strlen считает байты.
     if ($name === '' || mb_strlen($name) < 2) {
         $errors[] = 'Имя должно содержать минимум 2 символа.';
     }
@@ -27,8 +27,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['form'] ?? '') === 'profile
     }
 
     if (!$errors) {
-        // prepare() + execute() — подготовленный запрос: значения для ? передаются отдельно массивом (защита от SQL-инъекций).
-        // fetch() вернёт одну строку как ассоциативный массив (или false), fetchAll() — все строки.
+        // prepare() + execute()  подготовленный запрос: значения для ? передаются отдельно массивом (защита от SQL-инъекций).
+        // fetch() вернёт одну строку как ассоциативный массив (или false), fetchAll()  все строки.
         $stmt = $db->prepare('SELECT id FROM users WHERE email = ? AND id != ?');
         $stmt->execute([$email, $user['id']]);
         if ($stmt->fetch()) {
@@ -41,7 +41,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['form'] ?? '') === 'profile
         $stmt->execute([$name, $email, $user['id']]);
         // Flash-сообщение: текст кладётся в $_SESSION и показывается один раз на следующей загруженной странице.
         set_flash('success', 'Профиль обновлён.');
-        // redirect() отправляет заголовок Location и вызывает exit — код ниже не выполнится.
+        // redirect() отправляет заголовок Location и вызывает exit  код ниже не выполнится.
         redirect('/profile.php');
     }
 }
@@ -68,7 +68,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['form'] ?? '') === 'passwor
 
     if (!$passwordErrors) {
         $stmt = $db->prepare('UPDATE users SET password_hash = ? WHERE id = ?');
-        // password_hash() делает безопасный хеш пароля (bcrypt) — пароль в открытом виде в БД не хранится.
+        // password_hash() делает безопасный хеш пароля (bcrypt)  пароль в открытом виде в БД не хранится.
         $stmt->execute([password_hash($new, PASSWORD_DEFAULT), $user['id']]);
         set_flash('success', 'Пароль успешно изменён.');
         redirect('/profile.php');
@@ -81,13 +81,13 @@ $orders = $stmt->fetchAll();
 
 $itemsByOrder = [];
 if ($orders) {
-    // array_column($orders, 'id') — достаёт из массива строк только колонку id.
+    // array_column($orders, 'id')  достаёт из массива строк только колонку id.
     $ids = array_column($orders, 'id');
-    // Строим строку вида '?,?,?' по числу элементов — для условия IN (...) в SQL.
+    // Строим строку вида '?,?,?' по числу элементов  для условия IN (...) в SQL.
     $in = implode(',', array_fill(0, count($ids), '?'));
     $stmt = $db->prepare("SELECT order_id, product_name, size, quantity FROM order_items WHERE order_id IN ($in) ORDER BY id");
     $stmt->execute($ids);
-    // foreach ($массив as $элемент) — цикл по массиву.
+    // foreach ($массив as $элемент)  цикл по массиву.
     foreach ($stmt->fetchAll() as $row) {
         // [] = добавляет элемент в конец массива; так группируем позиции по номеру заказа.
         $itemsByOrder[$row['order_id']][] = $row;
@@ -99,7 +99,7 @@ $formEmail = $_POST['email'] ?? $user['email'];
 
 // Переменная будет доступна в header.php: файлы подключены через require, поэтому у них общая область видимости.
 $pageTitle = 'Профиль';
-// require вставляет файл прямо сюда (в отличие от require_once — каждый раз). Ниже, после закрывающего тега PHP, идёт обычный HTML.
+// require вставляет файл прямо сюда (в отличие от require_once  каждый раз). Ниже, после закрывающего тега PHP, идёт обычный HTML.
 require __DIR__ . '/includes/header.php';
 ?>
 

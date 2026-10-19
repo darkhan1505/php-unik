@@ -2,7 +2,7 @@
 
 <footer>
   <div class="container">
-    <span>&copy; <?= date('Y') ?> NORTH. — куртки на каждый день</span>
+    <span>&copy; <?= date('Y') ?> NORTH.  куртки на каждый день</span>
     <span>Учебный проект (PHP + PostgreSQL)</span>
   </div>
 </footer>
