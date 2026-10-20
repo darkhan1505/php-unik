@@ -7,5 +7,4 @@ RUN apt-get update && apt-get install -y --no-install-recommends libpq-dev \
 WORKDIR /app
 COPY . /app
 
-# Порт задаёт хостинг через переменную PORT
 CMD ["sh", "docker/start.sh"]

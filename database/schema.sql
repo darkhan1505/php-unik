@@ -1,8 +1,3 @@
--- Схема базы данных интернет-магазина курток NORTH. (PostgreSQL)
--- 1) Создайте ПУСТУЮ базу: createdb php_unik   (или CREATE DATABASE php_unik; в psql)
--- 2) Импортируйте схему:   psql -U postgres -d php_unik -f database/schema.sql
--- Если база осталась от старого TaskFlow, создайте новую пустую (таблица categories изменилась).
-
 CREATE TABLE IF NOT EXISTS users (
     id            SERIAL PRIMARY KEY,
     name          VARCHAR(100) NOT NULL,
@@ -84,7 +79,6 @@ FROM (VALUES
 JOIN categories c ON c.name = p.category
 WHERE NOT EXISTS (SELECT 1 FROM products);
 
--- Демо-администратор: email admin@north.local / пароль admin123
 INSERT INTO users (name, email, password_hash, role) VALUES
     ('Администратор', 'admin@north.local', '$2y$10$AAkZp5rouJTCWOVZdHIJFeNKHT/RPhUC1SFC0J.pJFe3wIN9lISV2', 'admin')
 ON CONFLICT (email) DO NOTHING;

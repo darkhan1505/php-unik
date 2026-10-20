@@ -7,7 +7,6 @@
   </div>
 </footer>
 
-<!-- Модальное окно подтверждения удаления -->
 <div id="confirm-modal" class="modal hidden">
   <div class="modal-box">
     <h3>Подтвердите действие</h3>

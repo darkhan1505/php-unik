@@ -1,11 +1,7 @@
 <?php
-// require_once подключает файл один раз (повторно не подключит). __DIR__  папка текущего файла.
-// init.php запускает сессию, подключает БД и общие функции  он нужен каждой странице.
 require_once __DIR__ . '/../includes/init.php';
-// Пускает только администратора, остальных перенаправляет. Скрипт дальше не выполнится.
 require_admin();
 
-// query()  запрос без параметров. fetchAll() возвращает все строки: массив ассоциативных массивов ['name' => '...'].
 $products = getDB()->query(
     'SELECT p.id, p.name, p.price, p.image_url, p.in_stock, c.name AS category_name
      FROM products p
@@ -13,9 +9,7 @@ $products = getDB()->query(
      ORDER BY p.id DESC'
 )->fetchAll();
 
-// Переменная будет доступна в header.php: файлы подключены через require, поэтому у них общая область видимости.
 $pageTitle = 'Куртки';
-// require вставляет файл прямо сюда (в отличие от require_once  каждый раз). Ниже, после закрывающего тега PHP, идёт обычный HTML.
 require __DIR__ . '/../includes/header.php';
 ?>
 

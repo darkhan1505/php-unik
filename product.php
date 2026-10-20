@@ -1,13 +1,7 @@
 <?php
-// require_once подключает файл один раз (повторно не подключит). __DIR__  папка текущего файла.
-// init.php запускает сессию, подключает БД и общие функции  он нужен каждой странице.
 require_once __DIR__ . '/includes/init.php';
 
-// $_GET  параметры из URL (?id=5), $_POST  поля отправленной формы. ctype_digit()  строка состоит только из цифр,
-// (int) приводит к числу. Запись «условие ? а : б»  тернарный оператор (как if/else в одну строку).
 $id = isset($_GET['id']) && ctype_digit($_GET['id']) ? (int) $_GET['id'] : 0;
-// prepare() + execute()  подготовленный запрос: значения для ? передаются отдельно массивом (защита от SQL-инъекций).
-// fetch() вернёт одну строку как ассоциативный массив (или false), fetchAll()  все строки.
 $stmt = getDB()->prepare(
     'SELECT p.*, c.name AS category_name FROM products p
      LEFT JOIN categories c ON c.id = p.category_id WHERE p.id = ?'
@@ -16,19 +10,14 @@ $stmt->execute([$id]);
 $product = $stmt->fetch();
 
 if (!$product) {
-    // Задаёт HTTP-статус ответа (404  не найдено).
     http_response_code(404);
-    // Flash-сообщение: текст кладётся в $_SESSION и показывается один раз на следующей загруженной странице.
     set_flash('error', 'Куртка не найдена.');
-    // redirect() отправляет заголовок Location и вызывает exit  код ниже не выполнится.
     redirect('/index.php');
 }
 
 $sizes = parse_sizes($product['sizes']);
 
-// Переменная будет доступна в header.php: файлы подключены через require, поэтому у них общая область видимости.
 $pageTitle = $product['name'];
-// require вставляет файл прямо сюда (в отличие от require_once  каждый раз). Ниже, после закрывающего тега PHP, идёт обычный HTML.
 require __DIR__ . '/includes/header.php';
 ?>
 
