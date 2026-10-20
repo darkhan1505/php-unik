@@ -79,6 +79,9 @@ FROM (VALUES
 JOIN categories c ON c.name = p.category
 WHERE NOT EXISTS (SELECT 1 FROM products);
 
+UPDATE users SET email = 'admin@gmail.com'
+WHERE email = 'admin@north.local' AND NOT EXISTS (SELECT 1 FROM users WHERE email = 'admin@gmail.com');
+
 INSERT INTO users (name, email, password_hash, role) VALUES
-    ('Администратор', 'admin@north.local', '$2y$10$AAkZp5rouJTCWOVZdHIJFeNKHT/RPhUC1SFC0J.pJFe3wIN9lISV2', 'admin')
+    ('Администратор', 'admin@gmail.com', '$2y$10$AAkZp5rouJTCWOVZdHIJFeNKHT/RPhUC1SFC0J.pJFe3wIN9lISV2', 'admin')
 ON CONFLICT (email) DO NOTHING;

@@ -31,7 +31,7 @@
    psql -U postgres -d php_unik -f database/schema.sql
    ```
 
-   Демо-администратор: `admin@north.local` / `admin123`
+   Демо-администратор: `admin@gmail.com` / `admin123`
 
 3. Настройте подключение в `config/database.php` (или переменными окружения
    `DB_HOST`, `DB_PORT`, `DB_NAME`, `DB_USER`, `DB_PASS`).

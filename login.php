@@ -61,9 +61,6 @@ require __DIR__ . '/includes/header.php';
     <p class="muted" style="margin-top:20px; text-align:center;">
       Нет аккаунта? <a href="/register.php" style="color:#2465d8; font-weight:bold;">Зарегистрироваться</a>
     </p>
-    <p class="muted" style="margin-top:12px; text-align:center; font-size:13px;">
-      Демо-администратор: admin@north.local / admin123
-    </p>
   </div>
 </section>
 
